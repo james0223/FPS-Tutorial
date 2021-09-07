@@ -388,3 +388,121 @@
 
 - If you slow down the bullets and watch them being fired, they go to strange direction
 - rotate the bullet in the AK47 skeletal model
+
+
+
+
+
+## 10. Crouching with animations
+
+- Create a blend space
+  - right click on the Content Browser - Animation - Blend space
+  - Select Swat_Skeleton and name it Crouch_BS
+    - The goal of a Blend Space is **to reduce the need for creating individual, hard-coded nodes for blending animations** with an asset that performs blending based on specific properties or conditions instead.
+
+
+
+- Set Idle_crouch_aiming at all the dots on the bottom
+- Change the names of horizontal, vertical to Direction, Speed
+- -180 and 180 for min max values of horizontal
+- 300 for max axis for vertical because crouching is slower than walking, running
+
+
+
+- Drag the walk_crouching_forward_inplace into mid top
+- walk_crouching_forward_left for the dot on the left and walk_crouching_forward_right for the dot on the right
+- walk_crouching_backward_inplace for each dots on the top right
+
+
+
+- Press shift to test it
+
+
+
+- To use this Animation we have created
+- Go back to the content browser and open up the Swat_AnimBP
+  - Go to Walk_Run
+  - Drag out from Idle add State Crouching
+  - also drag from Walk_Run to Crouching and vice versa
+  - Open up the Crouching state
+  - Drag Crouching_BS into editor and connect it to the result
+  - Connect the previously created Direction and speed variables to the Crouch_BS's slots
+
+
+
+- Now the engine needs to be told when to enter crouching
+  - Open up the ThirdPersonCharacter in the Content browser
+  - Create a new boolean variable called CrouchTrue
+
+
+
+- Go to Project settings to designate a key for crouching
+  - Input - Action mappings - + - name it Crouch
+
+
+
+- Go back to ThirdPersonCharacter
+  - In the Event graph, right click to find Crouch in Action Events
+  - Create Two SetCrouch and connect them to pressed and released
+  - set one to true, other to false
+
+
+
+- Also, we need to change the speed when changed to crouching, as the speed value is likely going to exceed the 300 value
+  - Grab the reference to CharacterMovement and drag from it to create set max walk speed
+  - press ctrl w to copy it
+  - when set to true, set the max walk speed to 300 and 600 for false
+
+
+
+- Now we need to hook it up into the Anim_BP
+  - Go back to Swat_AnimBP
+  - We need the reference to the CrouchTrue value from the character
+  - In the event graph's sequence
+    - create cast to third person character
+    - object will be try to get pawn owner
+    - as third person character - **get CrouchTrue from Default ** not from Character
+    - promote it to variable
+  - Go Walk_Run and open up Idle to Crouching arrow
+  - get Crouch true and create a node of boolean
+  - connect crouch true to the former slot and check the box in the latter
+  - do the things for other arrows
+
+
+
+## 11. Sprint Systems with animations
+
+- Skipped as there is no sprint in the free asset
+
+
+
+
+
+## 12 Control rotation
+
+- Make the gun follow us when we rotate our body
+
+- Open up the SWAT_AnimBP
+  - we will change the spine position
+  - Drag the Walk_Run far from the final animation pose to create some space
+  - rightclick to find Transform modify Bone
+    - This allows us to modify the transform of the bones
+    - there are three spines, and we will modify all three to make a smooth spine rotation
+  - Because we are making changes to three spines, duplicate the node two times
+  - Since we are only modifying the values of rotation, let's disable the translation, scale, alpha
+  - Set each node's bone to modify to spine, spine 1, spine 2
+  - connect from Walk_Run to first node sequentially to the Output pose
+  - drag out from the first node and promote to variable
+    - name it AimRotation
+    - connect the AimRotation to all the leftover nodes
+  - try moving the character after compiling and nothing will have changed by then because there is no value hooked to the AimRotation
+
+
+
+- Go to Swat_AnimBP > Event Graph and create CastToThirdPersonCharacter from the sequence node
+  - trygetpawnowner is the target object
+  - as third person char, create get control rotation
+    - need to study what control rotation is
+  - now we need to turn this into AimRotation
+  - create a Break Rotator
+    - 
