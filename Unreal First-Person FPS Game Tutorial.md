@@ -1,5 +1,14 @@
 # Unreal First-Person FPS Game Tutorial
 
+- Pawn vs Character
+  - Pawn is an actor that can be possessed and receive input from a controller
+  - Character is a type of Pawn that includes the ability to walk around
+    - Character Movement Component allows this to happen, which only resides within characters, not pawns
+  - 
+
+- Delta time
+  - time elapsed from the frame right before
+
 
 
 ## 1. Setup
@@ -472,9 +481,25 @@
 
 ## 11. Sprint Systems with animations
 
-- Skipped as there is no sprint in the free asset
+- Create a new Blendspace for sprinting
+- open it and place running animations on the bottom and sprinting on the top
 
 
+
+- we need to create a variable to tell the engine if we are sprinting
+- go to third person char and create a var SprintTrue
+- Go to input settings in the project settings and set the left shift key to Sprint
+- In the Event Graph, create Action event of Sprint
+- Do the similar things to Crouch except the speed part
+  - max to 1000 and reset to 600
+
+
+
+- Go to Swat_AnimBP
+  - create the sprint node and set it up just like crouch and walk
+  - In the Event graph, create a reference to Sprint true from third person char using the crouch sequence node
+  - leftover steps are just like setting up crouch
+- Make sure to give an interpolation value of 1 to smooth things up, both for crouch and sprint
 
 
 
@@ -505,4 +530,442 @@
     - need to study what control rotation is
   - now we need to turn this into AimRotation
   - create a Break Rotator
-    - 
+    - This breaks down the ration values 
+    - 언리얼은 왼손 좌표계
+    - x축 회전은 Roll
+    - y축 회전은 Pitch
+    - z축 회전은 Yaw
+  - leave x and z and create three nodes from y
+    - float - float
+    - float x float
+    - float > float
+  - Create a Select Float node
+    - connect minus node to A and multiply node to B and greater to Pick A
+    - divide the returned value to 3 by float divide
+    - create make rotator node and connect its value to x
+    - connect it to the Set Aim rotation node and connect the cast to Third to Set Aim rotation node
+
+  
+
+- now, to create sounds when firing a gun 
+
+  - from the starter content select explosion 01
+  - open up projectile_Base
+  - add component - audio, which should have selected the explosion01 that we have chosen
+  - go to volume multiplier and set its value to 0.3
+
+
+
+
+
+## 13. Making the gun automatic
+
+- Open up Weapon_Base
+- we will create a weapon fire rate and ammo capacity
+  - Create a variable named Ammo as integer
+    - compile it and set its default value to 50
+  - Create a variable named FireRate as float
+    - means how much it can fire a gun in a second
+    - it is basically the delay between each fire
+    - compile it and give it a default value of 0.1
+
+
+
+- Go open up the third person character - event graph - InputAction PrimaryFire
+  - we need to create a loop in here
+  - create a new variable set this to isFiring and create a set isFiring node
+  - connect InputAction PrimaryFire to Set Isfiring node
+  - duplicate the is firing node and connect it to InputAction PrimaryFire node's Released
+    - For pressed, set isFiring to true and false for released
+  - connect the set isFiring to fire and from the Fire, create Delay node and set its duration to Fire Rate from the equipped weapon
+  - Create a branch that follows the delay and set the condition to isFiring and make a loop into Fire node
+
+
+
+- To limit the bullets to Ammo
+  - Go to Weapon_Base's Fire function
+  - from SpawnActor Projectile Base, create Set Ammo node
+  - create get ammo node and connect it to the integer - integer node
+  - set it up so that the ammo reduces by 1 each time this function activates
+
+
+
+- Open up the ThirdPersonCharacter and create a branch node that checks if Ammo value is greater than 0 and in case it is true, connect it to the Set isFiring
+
+
+
+- To show how much Ammo you have left
+- Go to FPSHUD
+  - Drag in a text
+    - change its font size to maybe 50
+  - click on bind on the text and a get Text0 window will open
+  - cast to third person character
+    - the object will be Get Player Character
+  - as third person char - get equipped weapon and from equipped weapon get Ammo and connect it to the return value
+
+
+
+
+
+## 14. Aiming Down Sights
+
+- learn how to create a second camera for aiming and slow down the character while aiming
+
+
+
+- Open up the ThirdPersonCharacter
+- inside Mesh, create Skeletal Mesh
+  - set its parent to Weapon_Attach
+  - set its mesh to AK47
+  - check its visible and Hidden in game to true
+  - scale, rotate the mesh to fit the hands - does not have to be accurate as it will not be shown in the scene
+- In the Skeletal mesh we have created, create a camera and name it ADSCamera
+  - set its parent socket to the muzzle - this will make the camera move with our weapon
+  - rotate and transform the camera so that it will 
+    - to be more precise with this camera, scale it down
+    - turn off auto activate so that it is not activated when starting the game
+  - Set its Use Pawn Control Rotation to true to prevent camera from moving up and down while aiming
+
+
+
+- setting up aim function
+  - go to project settings to create new input - right click
+  - Name it AimDownSights
+    - set it to Right mouse button
+
+- Go to thirdPerson character
+  - In the events graph, create a node by finding Aimdownsights
+  - drag in the FollowCamera and create a Deactivate node
+  - Do the opposite for the release
+
+
+
+- If we go into the game, you can see that the view is a bit distorted even though we kind of set up the camera view
+  - This is because the weapon socket in our third person view is not the same one that gets spawned in the game
+  - To solve this, try moving and rotating the camera until you get a nice sight
+
+
+
+- now, since the person is moving too quickly when aiming, let's slow it down
+  - Go to ThirdPerson Character - Event Graph and create Character Movement node
+  - 수업 때는 aiming 모션을 넣어서 해보자
+
+
+
+
+
+## 15. Spawning Muzzle Flash
+
+- Will use sockets to do this
+
+
+
+- Download Infinity Blade: Effects
+- add it to the project
+- go into InfinityBladeEffects and search for Muzzle and confirm you have a Muzzle Flash
+
+
+
+- Open up Weapon_Base
+- We will be spawning it in a socket
+- In the Event graph, create Spawn Emitter at Location node at the end of the fire function
+  - The template should be muzzle flash
+  - For the rotation and location, we need to get a reference to the character as we can't directly access the weapon right now
+  - so before spawn emitter, create cast to thirdperson character
+    - object will be get player character
+    - as third person char, create get equipped weapon
+    - to find the weapon socket, create Get Socket Location(SkeletalMesh)
+    - the Socket Name in Get Socket Location should be Muzzle, as that is the name we have given to the socket in the AK
+
+
+
+- When you try shooting, the size would be too big and direction in the wrong way
+
+- To fix this create a Set World Scale 3D node
+  - This node allows you to change the scale based on the world
+  - change this to 0.1 maybe
+
+
+
+- now to adjust the direction
+  - create Get Socket Rotation and connect it to the rotation value of the Emitter
+    - don't forget to give it the correct socket name
+
+
+
+
+
+## 16. Fix sprinting and crouching
+
+- To prevent sprinting while crouching and vice versa, set the other to false when activating one
+  - for example in the input crouch, set Sprint True to false before starting the actions
+
+
+
+
+
+## 17. Reload function for Rifle
+
+- When pressing r it will reload
+
+
+
+- In Weapon_Base
+  - Create MaxAmmo and Clipsize int Variable
+
+- Create a Reload function
+  - create a branch to see if a player has a full clip
+  - set default values of Max Ammo, Clipsize to 100 and 25
+
+
+
+- Go to FPSHUD
+  - add a text for max ammo
+  - increase the font size and put it in a nice location
+  - click bind to create a function that can get the max ammo value
+    - just copy and paste the functions for tex0 and change the get ammo to get max ammo
+
+
+
+- To use the Reload key
+  - Go to project settings input
+    - create Reload and bind the R key to it
+  - Go to thirdperson char
+  - create node for reload
+  - drag Equipped weapon and call on reload function and connect it to pressed
+
+
+
+
+
+## 18. Conservative Reload system
+
+- I did it
+
+
+
+
+
+## 19. Reload Animation
+
+- Get the Reloading animation
+  - open it up and we can see that the animation doesn't really go well with the gun
+  - we can fade it later on to make it better
+- Go to Swat_AnimBP - Anim Graph - open up Walk_Run - Create new state called reloading
+  - open up the Reloading state and drag reloading animation into the editor
+
+
+
+- Now we need to create some variables to check if we are reloading or not
+
+  - Open up third person character
+  - Go to the Reload function
+    - we don't have a variable that can set up the reloading state so go to thirdperson character
+    - create a bool var named IsReloading
+  - go back to reload function in weapon_base
+  - create Cast to Third person char in the end and set the object to Get player Character
+  - from the cast node, create set IsReloading node and set it to true
+  - we need to set is reloading to false after the animation ends, but since this is a function, the delay cannot be created in this place
+  - Therefore, we create the delay outside the function
+  - create add return node in the end and drag the return value of set IsReloading into it
+    - This allows you to make this function return some specific value
+
+  
+
+- Go to Third Person Char - find reload node in Event Graph and you will see the function returning something
+
+  - create a branch to check if it has returned true
+  - in case it has returned true, create a delay node and connect it to set IsReloading - False
+  - To find out how long it needs to wait, go open up the reloading animation and find out how long the animation runs
+
+
+
+- To set up transitions for reloading
+  - We need reference to IsReloading, so go to EventGraph and select any node with Cast to ThirdPersonChar and as Third person char - get Isreloading - promote to variable
+  - Use this variable to transit reloading animation
+
+
+
+
+
+## 20 Fixing Firing system
+
+- Right now, we can fire guns even when we are reloading or sprinting
+
+
+
+- To fix this, open up third person char and find the inputaction primary fire
+- before activating, make it check the isReloading and isSprinting var
+
+
+
+
+
+## 21 Aiming with a Crosshair
+
+- Prepare a Crosshair png file
+
+
+
+- Open up FPSHUD
+  - drag in a Image
+  - set its anchor to the middle
+  - make its size values equal, such as 100, 100
+  - try to move it into the anchor located in the center
+  - to make it visible only when not aiming, create an Aiming var in Thirdperson char and set its value depending on AimDownSights in the EventGraph
+- reference this value in the FPSHUD - visible - bind - cast to third person char ~~
+
+
+
+
+
+## 22 Dynamic Spread Crosshair
+
+- Creating a crosshair that moves dynamically with the player character
+- for uassets, you cannot directly drag it into the project browser
+  - need to manually move it into the content - thirdpersonbp - blueprints
+  - it will appear with the name of WBCrosshair
+
+
+
+- we will be changing the crosshair_spread based on player's movement
+- go to FPSHUD and delete the original Crosshair image
+- Go to ThirdPersonChar - EventGraph 
+- at the end of creating FPSHUD widget, make a create widget node with WBCrosshair
+- get the return value to be promoted into a variable with the name of CrosshairRef
+  - The created variable allows us to access its Setcrosshair Spread etc
+- then drag it to add to viewport
+  - The crosshair should be too small at the beginning, so go back into WBCrosshair to change teh default values of length and thickness
+
+
+
+- Now to make it change depending on user's speed
+- Go to Third person Character - Event Graph - Event Tick
+- Drag the CrosshairRef from the variables and drag from it to create set Crosshair Spread
+  - First, create Get Velocity to get the velocity of this third person char
+  - Then, create a VectorLength node to turn it into a float variable that we can use
+  - Afterwards, create Map Range Clamped and connect its return value to the crosshair speed
+    - Map Range Clamped allows you to map or reassign a number from one range of numbers to another range
+      - In Range A and B map to Out range A and B based on the given value
+      - it moves the value's position from wherever it was in the first range to the new position in the range of the second two relative to the first value
+        - let's say your hp is from 0 to 100 but you want to move it to the progress bar which ranges from 0 to 1
+        - by using Map Range Clamped, if your hp is 50, you get 0.5
+      - The difference between Clamped and Unclamped is whether you can surpass the given range
+        - 110 will become 1.1 in unclamped, but 1.0 for clamped
+    - The values may vary but depending on the original:
+      - In Range A 0.0
+      - In Range B 450
+      - Out Range A 5
+      - Out Range B 80
+
+
+
+
+
+## 23. Pick up AMMO
+
+- Create a Blueprint Class that a player can collect to replenish AMMO
+
+- In the Content Browser, create a new blueprint class - Actor and name it RifleAmmoPickup
+  - Add component of StaticMesh and give it a Mesh
+    - Since I don't have Any mesh prepared, maybe give it a Cube mesh
+    - scale it to an appropriate size
+  - Initially, you won't be able to go through this
+    - Go to collision - BlockAllDynamic to Overlap all
+    - Overlap allows to activate collision event later on
+  - Go to Event node of RifleAmmoPickup
+    - on Event ActorBeginOverlap - CastoThirdPersonChar
+    - asThirdPersonChar - get EquippedWeapon
+      - from Equipped Weapon Get Max Ammo
+    - create a Set MaxAmmo from asThirdpersonChar
+      - connect its target node with Max Ammo via int + int
+    - Create Destroy Actor no the end
+    - Create Spawn Emitter and Spawn Sound for more details afterwards
+
+
+
+
+
+## 24 Setting Up AI & Bullet Damage
+
+- Create a new blueprint for the AI
+  - Blueprint - Character - name it SimpleAI - and open it
+  - select Mesh on the left and give it the SK Mannequin Mesh - the first one
+  - select the Animation - Use Animation Blueprint - ThirdPerson_AnimBP_C
+  - transform, scale to make him fit inside the collision capsule
+  - rotate him so that he faces the arrow
+  - Go out and put him inside the scene
+
+
+
+- Now to give him health and stats
+- Go back to SimpleAI
+  - Create a Health variable as float
+  - on Event ActorBeginOverlap - Cast to Projectile_Base
+  - create print string that help us check if it is working
+- if you go back to the scene and play it, the printed word does not show up
+- this is because we need to change the collision settings for the Projectile_Base
+  - Open it up - StaticMesh - Collsion 
+    - Collision Presets to OverlapAll
+    - Generate Overelap Events to true
+    - this will generate overlap for this
+  - If you test it now, the print words should show up
+    - generate overlap for SimpleAI too - Maybe not
+
+
+
+
+
+## 25. Enemy AI Following/Chasing
+
+- Need to set up a code to make the AI follow the character
+- Also need to create a navigational mesh areas where AI is not allowed to go in
+
+
+
+- In the Ue4 main page, go to Volumes - drag in Nav Mesh Bounds Volume
+- Extend the volume so that it covers the floor and not the floor above the stairs
+  - Press P to show the areas covered by it
+
+
+
+- To add AI into the SimpleAI
+  - open SimpleAI and addcomponent - PawnSensing
+    - This allows the AI to sense the player
+  - Press compile and click on the Pawn sensing
+    - the green radius you see around the mesh is the area that can detect a player
+  - Use Peripheral Vision angle and Sight Radius to adjust the range to your taste
+
+
+
+- On the bottom, press On See Pawn to designate actions that it will execute on seeing a pawn
+  - cast to third person char form the pawn hole
+    - test if it is seeing us by printing hello
+  - create a node called AI move to
+    - Pawn is the target we need to make it move
+    - Drag from it and select self
+    - As for the destination, we can either select an actor itself or select a location via Destination hole
+      - In our case, make it follow actor
+
+
+
+
+
+## 26 Fixing Aiming
+
+- Fix the part where you can aim while reloading
+- Fix the part where you can aim while sprinting
+  - for these two create a branch to see if it is reloading
+  - if not, copy the cancellation process of sprinting and paste it here before moving on to aiming
+  - Also need to fix the sprint part, as you can sprint while aiming down
+    - Press Alt+Click to delete a link
+    - Make the cancellation part of Aimdown into a function and name it DeactivateAiming
+    - copy the function and put it in the true part of the branch and connect it to the afterpart
+- remove the dynamic crosshair when aiming
+  - create Set Visibility of CrosshairRef node at the end of each aiming node ends and set it to either visible or hidden
+  - Another way of doing this is to select all 4 parts in WBCrosshair and bind their visibility to a function that changes its visibility depending on the ThirdPersonChar's Aiming Var
+
+
+
+## 27 Smarter AI Actions
+
